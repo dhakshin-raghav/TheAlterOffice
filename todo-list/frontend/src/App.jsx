@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 export default function TodoApp() {
   const [tasks, setTasks] = useState([]);
   const [input, setInput] = useState('');
+  const [editingTask, setEditingTask] = useState(null);
+  const [editInput, setEditInput] = useState('');
 
-  // 1. GET - Load tasks from backend
   const fetchTasks = async () => {
     const res = await fetch('http://localhost:3001/list');
     const data = await res.json();
@@ -13,24 +14,34 @@ export default function TodoApp() {
 
   useEffect(() => { fetchTasks(); }, []);
 
-  // 2. POST - Add a task
   const addTask = async () => {
+    if (!input) return;
     await fetch('http://localhost:3001/add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ task: input })
     });
     setInput('');
-    fetchTasks(); // Refresh list
+    fetchTasks();
   };
 
-  // 3. DELETE - Remove a task
   const removeTask = async (taskName) => {
     await fetch('http://localhost:3001/remove', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ task: taskName })
     });
+    fetchTasks();
+  };
+
+  const updateTask = async (oldTaskName) => {
+    await fetch('http://localhost:3001/edit', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldtask: oldTaskName, newtask: editInput })
+    });
+    setEditingTask(null); 
+    setEditInput('');
     fetchTasks();
   };
 
@@ -46,8 +57,23 @@ export default function TodoApp() {
 
       <ul>
         {tasks.map((t, index) => (
-          <li key={index}>
-            {t} <button onClick={() => removeTask(t)}>x</button>
+          <li key={index} style={{ marginBottom: '10px' }}>
+            {editingTask === t ? (
+              <>
+                <input 
+                  value={editInput} 
+                  onChange={(e) => setEditInput(e.target.value)} 
+                />
+                <button onClick={() => updateTask(t)}>Save</button>
+                <button onClick={() => setEditingTask(null)}>Cancel</button>
+              </>
+            ) : (
+              <>
+                {t} 
+                <button onClick={() => { setEditingTask(t); setEditInput(t); }} style={{ marginLeft: '10px' }}>Edit</button>
+                <button onClick={() => removeTask(t)}>x</button>
+              </>
+            )}
           </li>
         ))}
       </ul>
